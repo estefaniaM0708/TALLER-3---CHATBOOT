@@ -1,4 +1,4 @@
-# Chatbot domótico con control por voz y ESP32
+# Chatbot con control por voz y ESP32
 
 En esta actividad se realizó un **chatbot domótico orientado al encendido y apagado de un LED mediante comandos de voz**, tomando como referencia el chatbot presentado en el repositorio del curso.
 
@@ -568,12 +568,6 @@ Aunque para esta práctica se utilizó únicamente un LED, el mismo principio pu
 
 * Video de evidencia:
   https://drive.google.com/file/d/17j4eG9SLA5o9AJOmKrW2_eyuFpYh_WF3/view?usp=sharing
-
-* Python.
-
-* Flask.
-
-* PySerial.
 
 * MicroPython.
 
