@@ -1,31 +1,31 @@
-# Chatbot con control por voz y ESP32
+# Chatbot domótico con control por voz y ESP32
 
-En esta actividad se realizó un **chatbot domótico orientado al control de un LED mediante comandos de voz**, tomando como referencia la estructura del chatbot presentado en el repositorio del curso.
+En esta actividad se realizó un **chatbot domótico orientado al encendido y apagado de un LED mediante comandos de voz**, tomando como referencia el chatbot presentado en el repositorio del curso.
 
-El sistema permite que el usuario utilice el micrófono del computador para decir las palabras **“encender”** o **“apagar”**. El comando reconocido es enviado desde una aplicación desarrollada en Python hacia una **ESP32**, que finalmente controla el estado físico del LED.
+La aplicación permite utilizar el micrófono del computador para reconocer las palabras **“encender”** y **“apagar”**. Dependiendo del comando identificado, el computador envía una instrucción hacia una ESP32 mediante comunicación serial y esta modifica el estado del LED conectado a uno de sus GPIO.
 
-# ¿Cómo funciona el sistema?
+## ¿Cómo funciona el sistema?
 
 Su funcionamiento de manera resumida se puede exponer en los siguientes pasos:
 
-1. **Ingreso del usuario:** El usuario presiona el botón **HABLAR** desde una página web.
+1. **Activación del micrófono:** El usuario presiona el botón `HABLAR` desde una página web.
 
-2. **Reconocimiento de voz:** El navegador utiliza el micrófono para escuchar lo que dice el usuario.
+2. **Reconocimiento de voz:** El navegador utiliza el micrófono para escuchar la instrucción del usuario.
 
-3. **Identificación del comando:** El programa verifica si dentro de la frase aparece la palabra `encender` o `apagar`.
+3. **Identificación del comando:** El programa revisa si dentro de la frase reconocida se encuentra la palabra `encender` o `apagar`.
 
-4. **Generación de la orden:** Dependiendo de la palabra detectada, se genera uno de los siguientes comandos:
+4. **Generación de la orden:** Dependiendo de la palabra detectada se genera un comando.
 
-| Comando de voz | Orden enviada |
-| -------------- | ------------- |
-| Encender       | `ON`          |
-| Apagar         | `OFF`         |
+| Comando de voz | Orden |
+| -------------- | ----- |
+| Encender       | `ON`  |
+| Apagar         | `OFF` |
 
-5. **Comunicación serial:** Python envía la orden mediante USB hacia la ESP32.
+5. **Comunicación serial:** Python envía el comando hacia la ESP32 mediante el puerto USB.
 
-6. **Control de la salida:** La ESP32 recibe la información y modifica el estado del GPIO18.
+6. **Control del LED:** La ESP32 recibe la orden y cambia el estado del GPIO18.
 
-El funcionamiento general se puede representar como:
+El proceso general se puede representar como:
 
 ```text
 Usuario
@@ -49,35 +49,41 @@ LED
 
 # Desarrollo de la actividad
 
-## 1. Chatbot de referencia
+## 1. Revisión del chatbot
 
-Inicialmente se revisó el chatbot presentado en el repositorio:
+Inicialmente se revisó el chatbot disponible en el siguiente repositorio:
 
 https://github.com/dialejobv/U_Militar/tree/main/3)%20chatbot
 
-El ejemplo utiliza Python para recibir un mensaje escrito por el usuario y enviarlo hacia la API de **DeepSeek**.
+En este ejemplo se desarrolla un chatbot en Python que permite escribir mensajes desde la terminal y enviarlos hacia la API de **DeepSeek**.
 
-En el código original se utiliza:
+Para ello se utiliza la librería:
 
 ```python
 import requests
 ```
 
-para realizar la solicitud HTTP hacia:
+y se establece la dirección de la API:
 
 ```python
 API_URL = 'https://api.deepseek.com/v1/chat/completions'
 ```
 
-Posteriormente se envía el mensaje escrito por el usuario y se presenta la respuesta obtenida desde el modelo.
+Posteriormente el programa recibe el mensaje del usuario:
 
-Para la actividad domótica se tomó como referencia esta estructura de interacción, pero se cambió la entrada de texto por una **entrada mediante voz** y la respuesta del sistema se orientó al control físico de un LED mediante la ESP32.
+```python
+mensaje_usuario = input("Tú: ")
+```
 
-# 2. Aplicación de control por voz
+y lo envía hacia el servicio mediante una solicitud HTTP.
 
-El archivo `chatbot.py` se ejecuta en el computador y contiene la aplicación encargada de recibir los comandos de voz.
+Para la actividad domótica se tomó como referencia esta idea de interacción entre el usuario y el programa. Sin embargo, se modificó el sistema para que la entrada no se realizara mediante texto, sino mediante **comandos de voz**, y la respuesta final fuera una acción física sobre la ESP32.
 
-Para su funcionamiento se utilizan principalmente:
+# 2. Aplicación del chatbot por voz
+
+El programa `chatbot.py` se ejecuta en el computador y se encarga de crear la interfaz web, utilizar el reconocimiento de voz y establecer la comunicación con la ESP32.
+
+Las librerías principales son:
 
 ```python
 from flask import Flask, request, jsonify
@@ -87,76 +93,97 @@ import serial, time
 Donde:
 
 * `Flask` permite crear la aplicación web.
-* `serial` permite establecer la comunicación con la ESP32.
-* `time` se utiliza para controlar los tiempos de inicialización y respuesta.
+* `serial` permite comunicarse con la ESP32.
+* `time` permite agregar tiempos de espera durante la ejecución.
 
-## Comunicación con la ESP32
+La aplicación se inicializa mediante:
 
-La conexión se realiza mediante:
+```python
+app = Flask(__name__)
+```
+
+# 3. Comunicación con la ESP32
+
+La comunicación entre el computador y el microcontrolador se realiza mediante:
 
 ```python
 esp = serial.Serial("COM9", 115200, timeout=1)
+time.sleep(2)
 ```
 
-Por lo tanto, para esta implementación se utilizó:
+En esta implementación se utilizó:
 
 ```text
 Puerto: COM9
 Velocidad: 115200 baudios
 ```
 
-Después de abrir el puerto se espera aproximadamente dos segundos para permitir que la ESP32 termine su proceso de inicialización.
+El tiempo de espera permite que la ESP32 termine de iniciar después de abrir la conexión serial.
 
-# 3. Interfaz del chatbot
+# 4. Interfaz del chatbot
 
-La aplicación Flask genera una página web sencilla con un botón:
+La aplicación genera una página web sencilla que contiene un botón:
 
 ```html
+<h2>Control ESP32 por voz</h2>
 <button onclick="escuchar()">HABLAR</button>
+<h3 id="texto">Esperando...</h3>
 ```
 
-Cuando el usuario lo presiona, el sistema activa el reconocimiento de voz.
-
-En pantalla aparece inicialmente:
+Al ejecutar el programa se crea un servidor local y desde el navegador se puede ingresar a:
 
 ```text
-Escuchando...
+http://127.0.0.1:5000
 ```
 
-y posteriormente se muestra la frase reconocida por el navegador.
+Cuando se presiona el botón **HABLAR**, se activa el reconocimiento de voz del navegador.
 
-Por ejemplo:
+# 5. Reconocimiento de voz
 
-```text
-Escuché: encender la luz
-```
-
-# 4. Reconocimiento de voz
-
-El reconocimiento se realiza mediante:
+Para utilizar el micrófono se implementó:
 
 ```javascript
 let R = window.SpeechRecognition || window.webkitSpeechRecognition;
 let r = new R();
 ```
 
-Posteriormente se establece el idioma:
+Posteriormente se configuró el idioma:
 
 ```javascript
 r.lang = "es-CO";
 ```
 
-De esta manera, el sistema queda preparado para reconocer comandos pronunciados en español de Colombia.
+Esto permite que el sistema interprete comandos pronunciados en español.
 
-El programa escucha la frase y la convierte a minúsculas:
+Cuando se activa el micrófono aparece:
+
+```text
+Escuchando...
+```
+
+Después de reconocer la voz, la frase obtenida se guarda mediante:
 
 ```javascript
 let voz = e.results[e.results.length-1][0].transcript.toLowerCase();
 ```
 
-Luego comprueba las palabras importantes.
+El texto se convierte a minúsculas para facilitar la búsqueda de las palabras clave.
 
-Para encender:
+Por ejemplo, si el usuario dice:
+
+```text
+Encender el LED
+```
+
+el programa obtiene:
+
+```text
+encender el led
+```
+
+# 6. Identificación de los comandos
+
+Después de convertir la voz en texto se verifica si aparece la palabra `encender`.
 
 ```javascript
 if(voz.includes("encender")){
@@ -165,7 +192,13 @@ if(voz.includes("encender")){
 }
 ```
 
-Para apagar:
+Cuando se detecta esta palabra se genera el comando:
+
+```text
+ON
+```
+
+Para apagar se utiliza:
 
 ```javascript
 if(voz.includes("apagar")){
@@ -174,7 +207,13 @@ if(voz.includes("apagar")){
 }
 ```
 
-Por esta razón no es necesario decir únicamente una palabra exacta. El sistema también puede reconocer expresiones como:
+generando:
+
+```text
+OFF
+```
+
+El programa no requiere que el usuario diga exactamente una única palabra. También puede reconocer frases como:
 
 ```text
 Encender el LED
@@ -183,11 +222,11 @@ Apagar el LED
 Por favor apagar la luz
 ```
 
-Siempre que la frase contenga la palabra esperada.
+siempre que contengan las palabras configuradas.
 
-# 5. Envío del comando hacia Python
+# 7. Envío del comando hacia Flask
 
-Cuando se reconoce una orden, JavaScript utiliza `fetch()` para enviar la información hacia la aplicación Flask:
+Después de reconocer la orden se utiliza `fetch()` para enviar el comando desde la página web hacia Python.
 
 ```javascript
 fetch("/comando", {
@@ -197,19 +236,7 @@ fetch("/comando", {
 })
 ```
 
-Por ejemplo, si se reconoce la palabra **encender**, se envía:
-
-```text
-ON
-```
-
-Si se reconoce **apagar**, se envía:
-
-```text
-OFF
-```
-
-Flask recibe esta información mediante:
+Flask recibe la información mediante:
 
 ```python
 @app.route("/comando", methods=["POST"])
@@ -217,46 +244,70 @@ def comando():
     cmd = request.json["cmd"]
 ```
 
-Posteriormente el comando se envía hacia la ESP32:
+Posteriormente el comando es enviado hacia la ESP32:
 
 ```python
 esp.write((cmd + "\n").encode())
 ```
 
-# 6. Programa de la ESP32
+De esta manera, la instrucción reconocida mediante el micrófono termina convertida en información serial que puede interpretar el microcontrolador.
 
-El archivo `main.py` se ejecuta directamente en la ESP32 mediante **MicroPython**.
+# 8. Programa de la ESP32
 
-Inicialmente se configura el LED:
+El segundo programa corresponde a `main.py` y se ejecuta directamente en la ESP32 mediante **MicroPython**.
+
+Primero se importan los elementos necesarios:
 
 ```python
 from machine import Pin
 import sys
+```
 
+Posteriormente se configura el LED como salida:
+
+```python
 led = Pin(18, Pin.OUT)
 led.off()
 ```
 
-En esta implementación el LED está conectado al:
+Por lo tanto, el circuito utiliza:
 
-```text
-GPIO18
+| Elemento       | Conexión       |
+| -------------- | -------------- |
+| LED            | GPIO18         |
+| Tipo de GPIO   | Salida digital |
+| Estado inicial | Apagado        |
+
+Al iniciar el programa la ESP32 muestra:
+
+```python
+print("ESP_LISTA")
 ```
 
-Al iniciar el programa permanece apagado.
+indicando que está preparada para recibir comandos.
 
-La ESP32 entra posteriormente en un ciclo continuo esperando información proveniente del computador:
+# 9. Recepción de los comandos
+
+La ESP32 permanece constantemente esperando información proveniente del computador:
 
 ```python
 while True:
     cmd = sys.stdin.readline().strip().upper()
 ```
 
-El comando recibido se convierte a mayúsculas para evitar problemas en su interpretación.
+La función `readline()` recibe la información serial y `upper()` convierte el comando a mayúsculas.
 
-# 7. Interpretación de los comandos
+De esta manera, el programa puede comparar fácilmente si recibió:
 
-Cuando se recibe:
+```text
+ON
+OFF
+STATUS
+```
+
+# 10. Encendido del LED
+
+Cuando la ESP32 recibe:
 
 ```text
 ON
@@ -270,7 +321,17 @@ if cmd == "ON":
     print("OK: LED ENCENDIDO")
 ```
 
-La salida GPIO18 pasa a nivel alto y el LED se enciende.
+El GPIO18 pasa a nivel alto y el LED se enciende.
+
+La ESP32 también devuelve el mensaje:
+
+```text
+OK: LED ENCENDIDO
+```
+
+para confirmar que la instrucción fue realizada.
+
+# 11. Apagado del LED
 
 Cuando se recibe:
 
@@ -286,179 +347,227 @@ elif cmd == "OFF":
     print("OK: LED APAGADO")
 ```
 
-El GPIO18 cambia a nivel bajo y el LED se apaga.
+El GPIO18 pasa a nivel bajo y el LED se apaga.
 
-También se implementó el comando:
+La respuesta enviada hacia el computador es:
+
+```text
+OK: LED APAGADO
+```
+
+# 12. Consulta del estado
+
+El programa también permite utilizar:
 
 ```text
 STATUS
 ```
 
-que permite consultar el estado del LED:
+para consultar el estado actual del LED.
 
 ```python
 elif cmd == "STATUS":
     print("ESTADO: " + ("ENCENDIDO" if led.value() else "APAGADO"))
 ```
 
-En caso de recibir una orden que no corresponda con las anteriores, la ESP32 informa:
+Dependiendo del estado del GPIO se obtiene:
 
 ```text
-ERROR: COMANDO DESCONOCIDO
+ESTADO: ENCENDIDO
 ```
 
-# 8. Respuesta de la ESP32
+o:
 
-Una vez ejecutado el comando, la ESP32 devuelve una respuesta mediante comunicación serial.
+```text
+ESTADO: APAGADO
+```
 
-Python espera esta información:
+Si la ESP32 recibe un comando diferente a los anteriores, devuelve:
+
+```python
+else:
+    print("ERROR: COMANDO DESCONOCIDO")
+```
+
+# 13. Respuesta hacia la página web
+
+Después de enviar el comando, Python espera la respuesta generada por la ESP32:
 
 ```python
 respuesta = esp.readline().decode().strip()
 ```
 
-Posteriormente la respuesta se envía nuevamente hacia la página web:
+Luego Flask la devuelve hacia la interfaz:
 
 ```python
 return jsonify(respuesta=respuesta)
 ```
 
-De esta manera, cuando el LED se enciende, el usuario puede observar:
+Por esta razón, después de decir **encender**, la página puede mostrar:
 
 ```text
 OK: LED ENCENDIDO
 ```
 
-y cuando se apaga:
+y después de decir **apagar**:
 
 ```text
 OK: LED APAGADO
 ```
 
-Esto permite tener una confirmación de que la orden realmente fue recibida por la ESP32.
+Esto permite comprobar que la ESP32 recibió y ejecutó correctamente la orden.
 
-# 9. Integración completa
+# 14. Integración completa
 
-La comunicación entre todos los elementos puede representarse de la siguiente manera:
+El funcionamiento completo para encender el LED puede representarse de la siguiente manera:
 
 ```text
 Usuario dice "encender"
-           ↓
-Micrófono del computador
-           ↓
+          ↓
+Micrófono
+          ↓
 SpeechRecognition
-           ↓
-Detecta "encender"
-           ↓
-Genera comando ON
-           ↓
+          ↓
+Detecta la palabra "encender"
+          ↓
+Comando ON
+          ↓
 Flask
-           ↓
-Puerto serial COM9
-           ↓
+          ↓
+Comunicación serial COM9
+          ↓
 ESP32
-           ↓
+          ↓
 GPIO18 = HIGH
-           ↓
+          ↓
 LED ENCENDIDO
 ```
 
-Para apagar ocurre el proceso contrario:
+Para apagar:
 
 ```text
 Usuario dice "apagar"
-           ↓
+          ↓
+Micrófono
+          ↓
 SpeechRecognition
-           ↓
-Genera comando OFF
-           ↓
+          ↓
+Detecta la palabra "apagar"
+          ↓
+Comando OFF
+          ↓
 Flask
-           ↓
-Puerto serial COM9
-           ↓
+          ↓
+Comunicación serial COM9
+          ↓
 ESP32
-           ↓
+          ↓
 GPIO18 = LOW
-           ↓
+          ↓
 LED APAGADO
 ```
 
-# 10. Procedimiento realizado
+De esta manera, el sistema integra reconocimiento de voz, una aplicación web, comunicación serial y un sistema embebido.
+
+# 15. Procedimiento realizado
 
 Para desarrollar la actividad se realizaron los siguientes pasos:
 
-1. Se revisó el código del chatbot de referencia disponible en el repositorio.
+1. Se revisó el chatbot presentado en el repositorio de referencia.
 
-2. Se configuró la ESP32 con MicroPython.
+2. Se configuró la ESP32 para trabajar con MicroPython.
 
-3. Se conectó un LED al **GPIO18** de la ESP32 utilizando su respectiva resistencia.
+3. Se conectó el LED al GPIO18 de la ESP32 utilizando su correspondiente resistencia limitadora de corriente.
 
-4. Se cargó `main.py` dentro de la ESP32.
+4. Se creó el archivo `main.py` encargado de recibir los comandos y controlar el LED.
 
-5. En Visual Studio Code se creó el programa `chatbot.py`.
+5. Se cargó `main.py` dentro de la ESP32.
 
-6. Se instalaron las librerías necesarias:
+6. Se creó el archivo `chatbot.py` en Visual Studio Code.
+
+7. Se instalaron las librerías necesarias:
 
 ```bash
 pip install flask pyserial
 ```
 
-7. Se identificó el puerto utilizado por la ESP32, correspondiente a **COM9**.
+8. Se conectó la ESP32 al computador mediante USB.
 
-8. Se ejecutó el servidor mediante:
+9. Se identificó el puerto correspondiente, que para esta práctica fue:
+
+```text
+COM9
+```
+
+10. Se ejecutó la aplicación mediante:
 
 ```bash
 python chatbot.py
 ```
 
-9. La aplicación quedó disponible localmente en:
+11. Desde el navegador se abrió:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-10. Desde el navegador se presionó el botón **HABLAR**.
+12. Se permitió el acceso al micrófono.
 
-11. Se permitió el acceso al micrófono.
+13. Se presionó el botón **HABLAR**.
 
-12. Al decir **“encender”**, el sistema envió `ON` y activó el LED.
+14. Al pronunciar **“encender”**, el programa generó `ON` y encendió el LED.
 
-13. Al decir **“apagar”**, se envió `OFF` y el LED se desactivó.
+15. Al pronunciar **“apagar”**, se generó `OFF` y el LED se apagó.
 
 # Resultado
 
-Como resultado se obtuvo un sistema domótico capaz de controlar una salida física de la ESP32 utilizando únicamente comandos de voz.
+Como resultado se obtuvo un sistema domótico básico capaz de controlar físicamente un LED mediante **comandos de voz**.
 
-La aplicación reconoce las palabras **encender** y **apagar**, las transforma en comandos digitales y posteriormente las envía hacia la ESP32 mediante comunicación serial.
+El navegador reconoce la instrucción pronunciada por el usuario y la aplicación desarrollada en Python transforma esta información en los comandos `ON` y `OFF`.
 
-El sistema permitió comprobar la integración entre:
+Posteriormente estos comandos son enviados hacia la ESP32 mediante comunicación serial. Finalmente, el microcontrolador modifica el estado del GPIO18 y devuelve una confirmación hacia la aplicación.
+
+El proceso permitió integrar:
 
 ```text
 Reconocimiento de voz
-+
+        +
 Aplicación web
-+
+        +
 Python
-+
+        +
+Flask
+        +
 Comunicación serial
-+
+        +
 MicroPython
-+
+        +
 ESP32
 ```
 
+# Video de evidencia
+
+A continuación se presenta el video donde se puede observar el funcionamiento final del chatbot domótico.
+
+En la evidencia se muestra cómo el usuario utiliza el micrófono para dar las instrucciones **“encender”** y **“apagar”**, mientras la ESP32 recibe los comandos y modifica físicamente el estado del LED.
+
+### [Ver video de evidencia en Google Drive](https://drive.google.com/file/d/17j4eG9SLA5o9AJOmKrW2_eyuFpYh_WF3/view?usp=sharing)
+
 # Conclusión
 
-Con el desarrollo de esta actividad se implementó un sistema básico de **domótica controlado mediante voz**. El navegador se encargó de reconocer las instrucciones pronunciadas por el usuario, mientras que Flask permitió procesarlas y comunicarlas con la ESP32.
+Con el desarrollo de esta actividad se logró implementar un sistema básico de **domótica controlado mediante comandos de voz**. El reconocimiento realizado desde el navegador permitió convertir las instrucciones pronunciadas por el usuario en órdenes digitales que posteriormente fueron enviadas hacia la ESP32.
 
-La ESP32 recibió los comandos mediante el puerto serial y realizó el control físico del LED conectado al GPIO18.
+La aplicación Flask funcionó como intermediario entre la interfaz web y el microcontrolador, mientras que MicroPython permitió controlar directamente el LED conectado al GPIO18.
 
-Aunque la práctica utiliza únicamente un LED, el mismo principio puede aplicarse posteriormente para controlar iluminación, relés, ventiladores, motores u otros dispositivos utilizados en sistemas domóticos.
+Aunque para esta práctica se utilizó únicamente un LED, el mismo principio puede ampliarse para controlar dispositivos como lámparas, relés, ventiladores, motores o diferentes cargas utilizadas dentro de un sistema domótico.
 
-## Recursos utilizados
+# Recursos
 
 * Repositorio de referencia:
   https://github.com/dialejobv/U_Militar/tree/main/3)%20chatbot
+
+* Video de evidencia:
+  https://drive.google.com/file/d/17j4eG9SLA5o9AJOmKrW2_eyuFpYh_WF3/view?usp=sharing
 
 * Python.
 
@@ -470,4 +579,7 @@ Aunque la práctica utiliza únicamente un LED, el mismo principio puede aplicar
 
 * ESP32.
 
+* Visual Studio Code.
+
 * Reconocimiento de voz del navegador.
+
